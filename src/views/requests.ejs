@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Requests - Resource Portal</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .request-list { list-style: none; padding: 0; }
+        .request-item { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 4px; }
+        .status { font-weight: bold; color: #555; }
+        .status.confirmed { color: green; }
+        .status.unconfirmed { color: orange; }
+        .btn { padding: 8px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; }
+        .logout { color: red; text-decoration: none; margin-left: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Resource Requests</h1>
+        <div>
+            <span>Welcome, <%= username %></span>
+            <a href="/logout" class="logout">Logout</a>
+        </div>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+        <a href="/requests/new" class="btn">Create New Request</a>
+        <a href="/donos" class="btn" style="background-color: #dc3545;">Submit Report (Donos)</a>
+    </div>
+
+    <% if (requests.length === 0) { %>
+        <p>No requests found.</p>
+    <% } else { %>
+        <ul class="request-list">
+            <% requests.forEach(function(req) { %>
+                <li class="request-item">
+                    <div style="display: flex; justify-content: space-between;">
+                        <strong>Request #<%= req.id %></strong>
+                        <span class="status <%= req.status %>"><%= req.status.toUpperCase() %></span>
+                    </div>
+                    <p><%= req.content %></p>
+                    <small>Created: <%= new Date(req.created_at).toLocaleString() %></small>
+                    <% if (isSupervisor && req.username) { %>
+                        <br><small>User: <%= req.username %></small>
+                    <% } %>
+                </li>
+            <% }); %>
+        </ul>
+    <% } %>
+</body>
+</html>

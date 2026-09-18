@@ -1,0 +1,32 @@
+{
+  "name": "arktur-frontend-ussr",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Предприятие 3826 — Портал Распределения Ресурсов (React Server Components). Уязвимые версии: react2shell CVE в RSC Flight protocol.",
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001"
+  },
+  "dependencies": {
+    "next": "15.1.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-server-dom-webpack": "19.0.0",
+    "react-server-dom-turbopack": "19.0.0",
+    "react-server-dom-parcel": "19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0"
+  },
+  "overrides": {
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-server-dom-webpack": "19.0.0",
+    "react-server-dom-turbopack": "19.0.0",
+    "react-server-dom-parcel": "19.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

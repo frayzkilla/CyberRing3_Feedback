@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+  app:
+    image: ${REGISTRY_IMAGE:-feedback-app}:${IMAGE_TAG:-latest}
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_HOST=db
+      - DB_USER=arktur
+      - DB_PASSWORD=arktur_secret
+      - DB_NAME=arktur_db
+      - DB_PORT=5432
+    volumes:
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+    depends_on:
+      - db
+    restart: always
+    networks:
+      - internal
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=arktur
+      - POSTGRES_PASSWORD=arktur_secret
+      - POSTGRES_DB=arktur_db
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: always
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge

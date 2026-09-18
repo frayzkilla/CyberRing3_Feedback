@@ -1,0 +1,735 @@
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto+Mono:wght@400;700&family=Playfair+Display:wght@700;900&display=swap");
+
+:root {
+  --ussr-red: #cc0000;
+  --ussr-red-dark: #8b0000;
+  --ussr-red-deep: #5c0000;
+  --ussr-gold: #ffd700;
+  --ussr-gold-dim: #b8860b;
+  --ussr-cream: #f5e6c8;
+
+  --ah-dark: #0a0a0f;
+  --ah-dark-blue: #0d1117;
+  --ah-panel: #141420;
+  --ah-panel-border: #2a2a3a;
+  --ah-glow-red: #ff2d2d;
+  --ah-glow-gold: #ffaa00;
+  --ah-glow-cyan: #00ffe0;
+  --ah-text: #e8e0d0;
+  --ah-text-dim: #8a8070;
+  --ah-success: #00ff88;
+  --ah-warning: #ff8800;
+  --ah-danger: #ff2d2d;
+
+  --font-display: "Playfair Display", "Georgia", serif;
+  --font-mono: "Roboto Mono", "Courier New", monospace;
+  --font-pixel: "Press Start 2P", monospace;
+
+  --glow-red: 0 0 20px rgba(204, 0, 0, 0.5), 0 0 40px rgba(204, 0, 0, 0.2);
+  --glow-gold:
+    0 0 15px rgba(255, 215, 0, 0.4), 0 0 30px rgba(255, 215, 0, 0.15);
+  --glow-cyan: 0 0 15px rgba(0, 255, 224, 0.3);
+  --scanline: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-mono);
+  background: var(--ah-dark);
+  color: var(--ah-text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  background: var(--scanline);
+  opacity: 0.4;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(
+      ellipse at 20% 50%,
+      rgba(204, 0, 0, 0.08) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 80% 20%,
+      rgba(255, 215, 0, 0.05) 0%,
+      transparent 40%
+    ),
+    radial-gradient(
+      ellipse at 50% 80%,
+      rgba(0, 255, 224, 0.03) 0%,
+      transparent 40%
+    );
+}
+
+.page-container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+.soviet-header {
+  text-align: center;
+  padding: 40px 20px 30px;
+  position: relative;
+  border-bottom: 2px solid var(--ussr-red);
+  margin-bottom: 40px;
+}
+
+.soviet-header::before {
+  content: "☭";
+  display: block;
+  font-size: 48px;
+  color: var(--ussr-red);
+  text-shadow: var(--glow-red);
+  margin-bottom: 10px;
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.soviet-header h1 {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: var(--ussr-gold);
+  text-shadow: var(--glow-gold);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  line-height: 1.2;
+}
+
+.soviet-header .subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--ah-text-dim);
+  margin-top: 8px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.soviet-header .facility-badge {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 4px 16px;
+  border: 1px solid var(--ah-glow-cyan);
+  color: var(--ah-glow-cyan);
+  font-size: 0.7rem;
+  font-family: var(--font-pixel);
+  text-shadow: var(--glow-cyan);
+  letter-spacing: 1px;
+}
+
+.soviet-nav {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.soviet-nav a,
+.soviet-nav button {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 10px 20px;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border: 1px solid var(--ah-panel-border);
+  background: var(--ah-panel);
+  color: var(--ah-text);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.soviet-nav a:hover,
+.soviet-nav button:hover {
+  border-color: var(--ussr-red);
+  color: var(--ussr-gold);
+  box-shadow: var(--glow-red);
+}
+
+.soviet-nav a.active {
+  border-color: var(--ussr-red);
+  background: var(--ussr-red-deep);
+  color: var(--ussr-gold);
+}
+
+.soviet-nav .nav-danger {
+  border-color: var(--ah-danger);
+  color: var(--ah-danger);
+}
+
+.soviet-nav .nav-danger:hover {
+  background: var(--ussr-red-deep);
+  box-shadow: 0 0 20px rgba(255, 45, 45, 0.3);
+}
+
+.soviet-nav .nav-logout {
+  border-color: var(--ah-text-dim);
+  color: var(--ah-text-dim);
+}
+
+.soviet-nav .nav-logout:hover {
+  border-color: var(--ah-danger);
+  color: var(--ah-danger);
+}
+
+.soviet-panel {
+  background: var(--ah-panel);
+  border: 1px solid var(--ah-panel-border);
+  padding: 30px;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.soviet-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    var(--ussr-red),
+    var(--ussr-gold),
+    var(--ussr-red)
+  );
+}
+
+.soviet-panel h2 {
+  font-family: var(--font-display);
+  color: var(--ussr-gold);
+  font-size: 1.4rem;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--ah-panel-border);
+}
+
+.soviet-panel h3 {
+  color: var(--ussr-gold-dim);
+  font-size: 1rem;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.soviet-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--ussr-gold-dim);
+}
+
+.form-field input,
+.form-field textarea,
+.form-field select {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  padding: 12px 16px;
+  background: var(--ah-dark);
+  border: 1px solid var(--ah-panel-border);
+  color: var(--ah-text);
+  transition: border-color 0.3s;
+  outline: none;
+}
+
+.form-field input:focus,
+.form-field textarea:focus {
+  border-color: var(--ussr-red);
+  box-shadow: 0 0 10px rgba(204, 0, 0, 0.2);
+}
+
+.form-field input::placeholder,
+.form-field textarea::placeholder {
+  color: var(--ah-text-dim);
+  opacity: 0.6;
+}
+
+.form-field textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.btn-soviet {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 14px 28px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  cursor: pointer;
+  border: 2px solid var(--ussr-red);
+  background: linear-gradient(
+    180deg,
+    var(--ussr-red) 0%,
+    var(--ussr-red-dark) 100%
+  );
+  color: var(--ussr-gold);
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-soviet:hover {
+  box-shadow: var(--glow-red);
+  transform: translateY(-1px);
+  background: linear-gradient(
+    180deg,
+    var(--ussr-red-dark) 0%,
+    var(--ussr-red) 100%
+  );
+}
+
+.btn-soviet:active {
+  transform: translateY(0);
+}
+
+.btn-soviet:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-soviet-secondary {
+  background: transparent;
+  border-color: var(--ah-panel-border);
+  color: var(--ah-text);
+}
+
+.btn-soviet-secondary:hover {
+  border-color: var(--ussr-gold);
+  color: var(--ussr-gold);
+  box-shadow: var(--glow-gold);
+  background: transparent;
+}
+
+.btn-soviet-danger {
+  background: linear-gradient(180deg, #ff2d2d 0%, #cc0000 100%);
+  border-color: var(--ah-danger);
+  animation: danger-pulse 2s ease-in-out infinite;
+}
+
+.request-card {
+  background: var(--ah-panel);
+  border: 1px solid var(--ah-panel-border);
+  padding: 20px;
+  margin-bottom: 12px;
+  position: relative;
+  transition: border-color 0.3s;
+}
+
+.request-card:hover {
+  border-color: var(--ussr-red);
+}
+
+.request-card .request-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.request-card .request-id {
+  font-family: var(--font-pixel);
+  font-size: 0.6rem;
+  color: var(--ah-glow-cyan);
+  text-shadow: var(--glow-cyan);
+}
+
+.request-card .request-status {
+  font-size: 0.7rem;
+  padding: 3px 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border: 1px solid;
+}
+
+.request-card .request-status.confirmed {
+  color: var(--ah-success);
+  border-color: var(--ah-success);
+  text-shadow: 0 0 8px rgba(0, 255, 136, 0.4);
+}
+
+.request-card .request-status.unconfirmed {
+  color: var(--ah-warning);
+  border-color: var(--ah-warning);
+  text-shadow: 0 0 8px rgba(255, 136, 0, 0.4);
+}
+
+.request-card .request-content {
+  color: var(--ah-text);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: 10px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-left: 2px solid var(--ussr-red-dark);
+}
+
+.request-card .request-meta {
+  font-size: 0.7rem;
+  color: var(--ah-text-dim);
+  display: flex;
+  gap: 20px;
+}
+
+.request-card .request-user {
+  color: var(--ussr-gold-dim);
+}
+
+.supervisor-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 0.65rem;
+  font-family: var(--font-pixel);
+  color: var(--ah-glow-cyan);
+  border: 1px solid var(--ah-glow-cyan);
+  text-shadow: var(--glow-cyan);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  animation: pulse-glow-cyan 2s ease-in-out infinite;
+}
+
+.user-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 0.65rem;
+  font-family: var(--font-pixel);
+  color: var(--ussr-gold);
+  border: 1px solid var(--ussr-gold-dim);
+  text-shadow: var(--glow-gold);
+}
+
+.msg-error {
+  background: rgba(255, 45, 45, 0.1);
+  border: 1px solid var(--ah-danger);
+  color: var(--ah-danger);
+  padding: 12px 16px;
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+}
+
+.msg-success {
+  background: rgba(0, 255, 136, 0.08);
+  border: 1px solid var(--ah-success);
+  color: var(--ah-success);
+  padding: 12px 16px;
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+}
+
+.hero-section {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.hero-section .hero-star {
+  font-size: 80px;
+  color: var(--ussr-red);
+  text-shadow: var(--glow-red);
+  animation: pulse-glow 3s ease-in-out infinite;
+  margin-bottom: 20px;
+}
+
+.hero-section h1 {
+  font-family: var(--font-display);
+  font-size: 2.8rem;
+  color: var(--ussr-gold);
+  text-shadow: var(--glow-gold);
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  line-height: 1.3;
+  margin-bottom: 12px;
+}
+
+.hero-section .hero-subtitle {
+  font-size: 1rem;
+  color: var(--ah-text-dim);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.hero-section .hero-facility {
+  font-family: var(--font-pixel);
+  font-size: 0.7rem;
+  color: var(--ah-glow-cyan);
+  text-shadow: var(--glow-cyan);
+  letter-spacing: 2px;
+  margin-bottom: 40px;
+}
+
+.hero-section .hero-quote {
+  font-style: italic;
+  color: var(--ah-text-dim);
+  font-size: 0.85rem;
+  margin-bottom: 40px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.6;
+}
+
+.hero-section .hero-quote::before {
+  content: "« ";
+  color: var(--ussr-red);
+}
+.hero-section .hero-quote::after {
+  content: " »";
+  color: var(--ussr-red);
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.success-section {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.success-section .success-icon {
+  font-size: 64px;
+  color: var(--ah-success);
+  text-shadow: 0 0 30px rgba(0, 255, 136, 0.5);
+  margin-bottom: 20px;
+}
+
+.success-section h2 {
+  font-family: var(--font-display);
+  color: var(--ussr-gold);
+  font-size: 1.8rem;
+  margin-bottom: 16px;
+}
+
+.success-section p {
+  color: var(--ah-text-dim);
+  font-size: 0.9rem;
+  margin-bottom: 30px;
+}
+
+.loading-container {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--ah-panel-border);
+  border-top-color: var(--ussr-red);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+.loading-text {
+  font-size: 0.8rem;
+  color: var(--ah-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--ah-text-dim);
+}
+
+.empty-state .empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+}
+
+.separator {
+  border: none;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--ussr-red),
+    var(--ussr-gold),
+    var(--ussr-red),
+    transparent
+  );
+  margin: 30px 0;
+}
+
+.propaganda-text {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--ah-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  padding: 20px;
+  opacity: 0.6;
+}
+
+.soviet-footer {
+  text-align: center;
+  padding: 30px 20px;
+  margin-top: 40px;
+  border-top: 1px solid var(--ah-panel-border);
+  font-size: 0.65rem;
+  color: var(--ah-text-dim);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.soviet-footer .footer-star {
+  color: var(--ussr-red);
+  font-size: 16px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+a {
+  color: var(--ussr-gold-dim);
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+a:hover {
+  color: var(--ussr-gold);
+  text-shadow: var(--glow-gold);
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 0.8;
+    filter: brightness(1.3);
+  }
+}
+
+@keyframes pulse-glow-cyan {
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(0, 255, 224, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(0, 255, 224, 0.4);
+  }
+}
+
+@keyframes danger-pulse {
+  0%,
+  100% {
+    box-shadow: none;
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(255, 45, 45, 0.3);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@media (max-width: 640px) {
+  .soviet-header h1 {
+    font-size: 1.5rem;
+  }
+  .hero-section h1 {
+    font-size: 1.8rem;
+  }
+  .soviet-panel {
+    padding: 20px;
+  }
+  .soviet-nav {
+    gap: 8px;
+  }
+  .soviet-nav a,
+  .soviet-nav button {
+    padding: 8px 14px;
+    font-size: 0.7rem;
+  }
+}

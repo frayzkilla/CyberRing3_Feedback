@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Request #<%= request.id %> - Resource Portal</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .back-link { display: inline-block; margin-bottom: 20px; text-decoration: none; color: #555; }
+        .request-detail { border: 1px solid #ddd; padding: 20px; border-radius: 4px; }
+        .status { font-weight: bold; }
+        .status.confirmed { color: green; }
+        .status.unconfirmed { color: orange; }
+        .meta { color: #666; font-size: 0.9em; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <a href="/requests" class="back-link">&larr; Back to Requests</a>
+    <div class="request-detail">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>Request #<%= request.id %></h2>
+            <span class="status <%= request.status %>"><%= request.status.toUpperCase() %></span>
+        </div>
+        <hr>
+        <p style="font-size: 1.1em; line-height: 1.6;"><%= request.content %></p>
+        <div class="meta">
+            <p>Created: <%= new Date(request.created_at).toLocaleString() %></p>
+            <p>Author: <%= request.username %></p>
+        </div>
+    </div>
+</body>
+</html>
