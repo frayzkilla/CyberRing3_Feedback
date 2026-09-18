@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   app:
     image: ${REGISTRY_IMAGE:-feedback-app}:${IMAGE_TAG:-latest}
@@ -8,30 +6,49 @@ services:
       - "3000:3000"
     environment:
       - DB_HOST=db
-      - DB_USER=arktur
-      - DB_PASSWORD=arktur_secret
-      - DB_NAME=arktur_db
+      - DB_USER=${DB_USER:-arktur}
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD must be set}
+      - DB_NAME=${DB_NAME:-arktur_db}
       - DB_PORT=5432
+      - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET must be set}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001}
     volumes:
       - ./src:/app/src
       - ./package.json:/app/package.json
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     restart: always
     networks:
       - internal
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('net').connect(3000, '127.0.0.1').on('connect', () => process.exit(0)).on('error', () => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   db:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_USER=arktur
-      - POSTGRES_PASSWORD=arktur_secret
-      - POSTGRES_DB=arktur_db
+      - POSTGRES_USER=${DB_USER:-arktur}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?DB_PASSWORD must be set}
+      - POSTGRES_DB=${DB_NAME:-arktur_db}
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     restart: always
     networks:
       - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 networks:
   internal:

@@ -4,37 +4,71 @@ const bodyParser = require("body-parser");
 const { Pool } = require("pg");
 const bcrypt = require("bcrypt");
 const path = require("path");
+const crypto = require("crypto");
 
 const app = express();
 const port = 3000;
+const isProduction = process.env.NODE_ENV === "production";
+const sessionSecret = process.env.SESSION_SECRET;
+
+if (isProduction && (!sessionSecret || sessionSecret.length < 32)) {
+  throw new Error("SESSION_SECRET must be set to at least 32 characters");
+}
+
+app.set("trust proxy", isProduction ? 1 : 0);
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (
-    origin &&
-    (origin.startsWith("http://localhost:") ||
-      origin.startsWith("http://127.0.0.1:"))
-  ) {
+  const allowedOrigins = new Set(
+    (
+      process.env.ALLOWED_ORIGINS ||
+      "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001"
+    )
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean),
+  );
+
+  if (origin && allowedOrigins.has(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader(
-      "Access-Control-Allow-Methods",
-      "GET,POST,PUT,DELETE,OPTIONS",
-    );
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Vary", "Origin");
   }
-  if (req.method === "OPTIONS") return res.sendStatus(200);
+  if (req.method === "OPTIONS") {
+    return origin && allowedOrigins.has(origin)
+      ? res.sendStatus(204)
+      : res.sendStatus(403);
+  }
+
+  if (
+    ["POST", "PUT", "PATCH", "DELETE"].includes(req.method) &&
+    origin &&
+    !allowedOrigins.has(origin)
+  ) {
+    return res.status(403).json({ error: "Недопустимый источник запроса" });
+  }
+
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "same-origin");
   next();
 });
 
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false, limit: "20kb" }));
+app.use(bodyParser.json({ limit: "20kb" }));
 app.use(
   session({
-    secret: "super-secret-key-change-in-prod",
+    secret: sessionSecret || crypto.randomBytes(32).toString("hex"),
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false, sameSite: "lax" },
+    cookie: {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: "lax",
+      maxAge: 8 * 60 * 60 * 1000,
+    },
   }),
 );
 
@@ -42,54 +76,10 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "public")));
 
-const leadres = {
-  banned_leaders: {},
-};
-
-const deepMerge = (target, source) => {
-  for (const key in source) {
-    if (source[key] instanceof Object && key in target) {
-      Object.assign(source[key], deepMerge(target[key], source[key]));
-    }
-  }
-  Object.assign(target || {}, source);
-  return target;
-};
-
-const parseQueryParams = (queryString) => {
-  if (typeof queryString !== "string") {
-    return {};
-  }
-  const cleanString = queryString.startsWith("?")
-    ? queryString.substring(1)
-    : queryString;
-  const params = new URLSearchParams(cleanString);
-  const result = {};
-  for (const [key, value] of params.entries()) {
-    const path = key.split(".");
-    let current = result;
-    for (let i = 0; i < path.length; i++) {
-      let part = path[i];
-      if (["__proto__", "prototype", "constructor"].includes(part)) {
-        part = "__unsafe$" + part;
-      }
-      if (i === path.length - 1) {
-        current[part] = value;
-      } else {
-        if (!current[part] || typeof current[part] !== "object") {
-          current[part] = {};
-        }
-        current = current[part];
-      }
-    }
-  }
-  return result;
-};
-
 const pool = new Pool({
   host: process.env.DB_HOST || "localhost",
   user: process.env.DB_USER || "arktur",
-  password: process.env.DB_PASSWORD || "arktur_secret",
+  password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME || "arktur_db",
   port: process.env.DB_PORT || 5432,
 });
@@ -138,6 +128,16 @@ const requireAuth = (req, res, next) => {
   next();
 };
 
+const establishSession = (req, user, callback) => {
+  req.session.regenerate((err) => {
+    if (err) return callback(err);
+    req.session.userId = user.id;
+    req.session.username = user.username;
+    req.session.isSupervisor = Boolean(user.is_supervisor);
+    callback(null);
+  });
+};
+
 app.get("/", (req, res) => {
   if (req.session.userId) {
     return res.redirect("/requests");
@@ -164,11 +164,14 @@ app.post("/register", async (req, res) => {
       [username, hashedPassword],
     );
 
-    req.session.userId = result.rows[0].id;
-    req.session.username = username;
-    req.session.isSupervisor = false;
-
-    res.redirect("/requests");
+    establishSession(
+      req,
+      { id: result.rows[0].id, username, is_supervisor: false },
+      (sessionError) => {
+        if (sessionError) return res.status(500).send("Error creating session");
+        res.redirect("/requests");
+      },
+    );
   } catch (err) {
     if (err.code === "23505") {
       return res
@@ -197,10 +200,10 @@ app.post("/login", async (req, res) => {
       const match = await bcrypt.compare(password, user.password);
 
       if (match) {
-        req.session.userId = user.id;
-        req.session.username = user.username;
-        req.session.isSupervisor = user.is_supervisor;
-        return res.redirect("/requests");
+        return establishSession(req, user, (sessionError) => {
+          if (sessionError) return res.status(500).send("Login error");
+          res.redirect("/requests");
+        });
       }
     }
     res.status(401).send("Invalid credentials");
@@ -210,7 +213,7 @@ app.post("/login", async (req, res) => {
   }
 });
 
-app.get("/logout", (req, res) => {
+app.post("/logout", (req, res) => {
   req.session.destroy();
   res.redirect("/");
 });
@@ -220,24 +223,6 @@ app.get("/requests", requireAuth, async (req, res) => {
     const usersRes = await pool.query("SELECT * FROM users");
     const allUsers = usersRes.rows;
 
-    const bannedList = leadres.banned_leaders || {};
-    const bannedNames = Object.keys(bannedList).filter(
-      (k) => typeof bannedList[k] === "string",
-    );
-    const usersToDelete = allUsers.filter((u) =>
-      bannedNames.some((name) => u.username.includes(name)),
-    );
-
-    if (usersToDelete.length > 0) {
-      const idsToDelete = usersToDelete.map((u) => u.id);
-      await pool.query("DELETE FROM users WHERE id = ANY($1)", [idsToDelete]);
-
-      if (idsToDelete.includes(req.session.userId)) {
-        req.session.destroy();
-        return res.redirect("/");
-      }
-    }
-
     const currentUser = allUsers.find((u) => u.id === req.session.userId);
 
     if (!currentUser) {
@@ -246,13 +231,6 @@ app.get("/requests", requireAuth, async (req, res) => {
     }
 
     let isSupervisor = currentUser.is_supervisor;
-
-    if (
-      leadres[req.session.username] &&
-      leadres[req.session.username].isSupervisor
-    ) {
-      isSupervisor = true;
-    }
 
     let requests;
     if (isSupervisor) {
@@ -308,27 +286,18 @@ app.get("/donos", requireAuth, (req, res) => {
 
 app.post("/donos", requireAuth, async (req, res) => {
   try {
-    let safeBody = {};
-    if (req.body) {
-      for (const key in req.body) {
-        let part = key;
-        if (["__proto__", "prototype", "constructor"].includes(part)) {
-          part = "__unsafe$" + part;
-        }
-        safeBody[part] = req.body[key];
-      }
-      deepMerge(leadres.banned_leaders, safeBody);
-    }
+    const { distinctive_features: distinctiveFeatures } = req.body;
+    const reportData = {
+      relatives: Object.keys(req.body || {}).filter(
+        (key) => key.startsWith("relatives[") && key.endsWith("]"),
+      ).length,
+      distinctiveFeatures:
+        typeof distinctiveFeatures === "string"
+          ? distinctiveFeatures.slice(0, 2000)
+          : "",
+    };
 
-    const { distinctive_features } = req.body;
-    if (distinctive_features) {
-      const parsed = parseQueryParams(distinctive_features);
-      deepMerge(leadres.banned_leaders, parsed);
-    }
-
-    const reportData = leadres;
-
-    console.log("Received Donos:", JSON.stringify(reportData, null, 2));
+    console.log("Received Donos:", JSON.stringify(reportData));
 
     res.render("donos_success");
   } catch (err) {
@@ -337,16 +306,28 @@ app.post("/donos", requireAuth, async (req, res) => {
   }
 });
 
-app.get("/api/me", (req, res) => {
+app.get("/api/me", async (req, res) => {
   if (!req.session.userId) {
     return res.json({ authenticated: false });
   }
-  res.json({
-    authenticated: true,
-    userId: req.session.userId,
-    username: req.session.username,
-    isSupervisor: req.session.isSupervisor || false,
-  });
+  try {
+    const result = await pool.query(
+      "SELECT id, username, is_supervisor FROM users WHERE id = $1",
+      [req.session.userId],
+    );
+    if (result.rows.length === 0) {
+      return req.session.destroy(() => res.json({ authenticated: false }));
+    }
+    const user = result.rows[0];
+    res.json({
+      authenticated: true,
+      userId: user.id,
+      username: user.username,
+      isSupervisor: Boolean(user.is_supervisor),
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Ошибка базы данных" });
+  }
 });
 
 app.post("/api/register", async (req, res) => {
@@ -362,10 +343,15 @@ app.post("/api/register", async (req, res) => {
       "INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id",
       [username, hashedPassword],
     );
-    req.session.userId = result.rows[0].id;
-    req.session.username = username;
-    req.session.isSupervisor = false;
-    res.json({ success: true, username });
+    establishSession(
+      req,
+      { id: result.rows[0].id, username, is_supervisor: false },
+      (sessionError) => {
+        if (sessionError)
+          return res.status(500).json({ error: "Ошибка сессии" });
+        res.json({ success: true, username });
+      },
+    );
   } catch (err) {
     if (err.code === "23505") {
       return res
@@ -386,13 +372,14 @@ app.post("/api/login", async (req, res) => {
       const user = result.rows[0];
       const match = await bcrypt.compare(password, user.password);
       if (match) {
-        req.session.userId = user.id;
-        req.session.username = user.username;
-        req.session.isSupervisor = user.is_supervisor;
-        return res.json({
-          success: true,
-          username: user.username,
-          isSupervisor: user.is_supervisor,
+        return establishSession(req, user, (sessionError) => {
+          if (sessionError)
+            return res.status(500).json({ error: "Ошибка сессии" });
+          res.json({
+            success: true,
+            username: user.username,
+            isSupervisor: Boolean(user.is_supervisor),
+          });
         });
       }
     }
@@ -411,33 +398,12 @@ app.get("/api/requests", requireAuth, async (req, res) => {
   try {
     const usersRes = await pool.query("SELECT * FROM users");
     const allUsers = usersRes.rows;
-    const bannedList = leadres.banned_leaders || {};
-    const bannedNames = Object.keys(bannedList).filter(
-      (k) => typeof bannedList[k] === "string",
-    );
-    const usersToDelete = allUsers.filter((u) =>
-      bannedNames.some((name) => u.username.includes(name)),
-    );
-    if (usersToDelete.length > 0) {
-      const idsToDelete = usersToDelete.map((u) => u.id);
-      await pool.query("DELETE FROM users WHERE id = ANY($1)", [idsToDelete]);
-      if (idsToDelete.includes(req.session.userId)) {
-        req.session.destroy();
-        return res.status(401).json({ error: "Ваш аккаунт был удалён" });
-      }
-    }
     const currentUser = allUsers.find((u) => u.id === req.session.userId);
     if (!currentUser) {
       req.session.destroy();
       return res.status(401).json({ error: "Пользователь не найден" });
     }
     let isSupervisor = currentUser.is_supervisor;
-    if (
-      leadres[req.session.username] &&
-      leadres[req.session.username].isSupervisor
-    ) {
-      isSupervisor = true;
-    }
     let requests;
     if (isSupervisor) {
       const result = await pool.query(
@@ -517,23 +483,17 @@ app.post("/api/requests", requireAuth, async (req, res) => {
 
 app.post("/api/donos", requireAuth, async (req, res) => {
   try {
-    let safeBody = {};
-    if (req.body) {
-      for (const key in req.body) {
-        let part = key;
-        if (["__proto__", "prototype", "constructor"].includes(part)) {
-          part = "__unsafe$" + part;
-        }
-        safeBody[part] = req.body[key];
-      }
-      deepMerge(leadres.banned_leaders, safeBody);
-    }
-    const { distinctive_features } = req.body;
-    if (distinctive_features) {
-      const parsed = parseQueryParams(distinctive_features);
-      deepMerge(leadres.banned_leaders, parsed);
-    }
-    console.log("Received Donos:", JSON.stringify(leadres, null, 2));
+    const { distinctive_features: distinctiveFeatures } = req.body;
+    console.log(
+      "Received Donos:",
+      JSON.stringify({
+        fields: Object.keys(req.body || {}).length,
+        distinctiveFeatures:
+          typeof distinctiveFeatures === "string"
+            ? distinctiveFeatures.slice(0, 2000)
+            : "",
+      }),
+    );
     res.json({
       success: true,
       message: "Донос принят, товарищ. Спасибо за бдительность.",
