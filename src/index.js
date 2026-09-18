@@ -28,8 +28,23 @@ app.use((req, res, next) => {
       .map((value) => value.trim())
       .filter(Boolean),
   );
+  const isAllowedOrigin = (value) => {
+    if (!value || allowedOrigins.has(value)) return Boolean(value);
 
-  if (origin && allowedOrigins.has(origin)) {
+    try {
+      const parsedOrigin = new URL(value);
+      const allowedPort = ["3000", "3001"].includes(parsedOrigin.port);
+      const isCtfHostname =
+        parsedOrigin.hostname.endsWith(".ctflab.local") ||
+        /^10\.62\.\d+\.10$/.test(parsedOrigin.hostname);
+      return parsedOrigin.protocol === "http:" && allowedPort && isCtfHostname;
+    } catch (_) {
+      return false;
+    }
+  };
+  const originAllowed = isAllowedOrigin(origin);
+
+  if (originAllowed) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
@@ -37,15 +52,13 @@ app.use((req, res, next) => {
     res.setHeader("Vary", "Origin");
   }
   if (req.method === "OPTIONS") {
-    return origin && allowedOrigins.has(origin)
-      ? res.sendStatus(204)
-      : res.sendStatus(403);
+    return originAllowed ? res.sendStatus(204) : res.sendStatus(403);
   }
 
   if (
     ["POST", "PUT", "PATCH", "DELETE"].includes(req.method) &&
     origin &&
-    !allowedOrigins.has(origin)
+    !originAllowed
   ) {
     return res.status(403).json({ error: "Недопустимый источник запроса" });
   }
